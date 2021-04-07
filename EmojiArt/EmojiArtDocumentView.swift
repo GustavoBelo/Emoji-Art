@@ -65,22 +65,26 @@ struct EmojiArtDocumentView: View {
                     location = CGPoint(x: location.x / self.zoomScale, y: location.y / self.zoomScale)
                     return self.drop(providers: providers, at: location)
                 }
-                .navigationBarItems(trailing:
-                                        Button(action: {
-                                            if let url = UIPasteboard.general.url, url != self.document.backgroundURL{
-                                                self.confirmBackgroundPaste = true
-                                            }else{
-                                                self.explainBackgroundPaste = true
-                                            }
-                                        }, label: {
-                                            Image(systemName: "doc.on.clipboard").imageScale(.large)
-                                                .alert(isPresented: self.$explainBackgroundPaste){
-                                                    Alert(
-                                                        title: Text("Colar Imagem de Fundo"),
-                                                        message: Text("Copie uma imagem e clique nesse botão para colar a imagem como imagem de fundo"),
-                                                        dismissButton: .default(Text("OK"))
-                                                )}
-                                        })
+                .navigationBarItems(
+                    leading: self.pickImage ,
+                    
+                    
+                    trailing:
+                            Button(action: {
+                                if let url = UIPasteboard.general.url, url != self.document.backgroundURL{
+                                    self.confirmBackgroundPaste = true
+                                }else{
+                                    self.explainBackgroundPaste = true
+                                }
+                            }, label: {
+                                Image(systemName: "doc.on.clipboard").imageScale(.large)
+                                    .alert(isPresented: self.$explainBackgroundPaste){
+                                        Alert(
+                                            title: Text("Colar Imagem de Fundo"),
+                                            message: Text("Copie uma imagem e clique nesse botão para colar a imagem como imagem de fundo"),
+                                            dismissButton: .default(Text("OK"))
+                                    )}
+                            })
                 )
             }
             .zIndex(-1)
@@ -95,6 +99,35 @@ struct EmojiArtDocumentView: View {
                 secondaryButton: .cancel())
             
         }
+    }
+    
+    @State private var showImagePicker = false
+    @State private var imagePickerSourceType = UIImagePickerController.SourceType.photoLibrary
+    
+    private var pickImage: some View{
+        HStack{
+            Image(systemName: "photo").imageScale(.large).foregroundColor(.accentColor).onTapGesture {
+                self.imagePickerSourceType = .photoLibrary
+                self.showImagePicker = true
+            }
+            if UIImagePickerController.isSourceTypeAvailable(.camera){
+                Image(systemName: "camera").imageScale(.large).foregroundColor(.accentColor).onTapGesture {
+                    self.imagePickerSourceType = .camera
+                    self.showImagePicker = true
+                }
+            }
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(sourceType: self.imagePickerSourceType){ image in
+                if image != nil{
+                    DispatchQueue.main.async {
+                        self.document.backgroundURL = image!.storeInFilesystem()
+                    }
+                }
+                self.showImagePicker = false
+            }
+        }
+        .padding(5)
     }
     
     @State private var explainBackgroundPaste: Bool = false
